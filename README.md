@@ -1,16 +1,24 @@
 # ebook
 
-A new Flutter project.
+A web site for reading books by pdfs or listening
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Archtechture used : MVVM
 
-A few resources to get you started if this is your first Flutter project:
+State management used : Bloc
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Libraries used : 
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.14.0
+  firebase_storage: ^11.6.0
+  awesome_dialog: ^3.2.0
+  fluttertoast: ^8.2.4
+  file_picker: ^6.2.0
+  syncfusion_flutter_pdfviewer: ^22.1.37
+  flutter_bloc: ^8.1.4
+  audioplayers: ^5.2.1
+  shared_preferences: ^2.2.2
+  shared_preferences_web: ^2.2.1
