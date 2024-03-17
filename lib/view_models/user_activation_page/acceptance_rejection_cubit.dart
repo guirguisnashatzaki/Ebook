@@ -13,16 +13,24 @@ class AcceptanceRejectionCubit extends Cubit<AcceptanceRejectionState> {
 
   AcceptanceRejectionCubit() : super(AcceptanceRejectionInitial());
 
-  // acceptOrReject(User user){
-  //   String rej = "Rejection";
-  //   String acc = "Activation";
-  //   firestoreHelper.updateUser(user).then((value){
-  //     if(value.isError){
-  //       ToastHelper.showMyToast("Rejection Failed");
-  //     }else{
-  //       ToastHelper.showMyToast("Rejection Succeed");
-  //     }
-  //   });
-  // }
+  reject(User user){
+    firestoreHelper.updateUser(user).then((value){
+      if(value.isError){
+        emit(AcceptanceRejectionError());
+      }else{
+        emit(AcceptanceRejectionRejected());
+      }
+    });
+  }
+
+  accept(User user){
+    firestoreHelper.updateUser(user).then((value){
+      if(value.isError){
+        emit(AcceptanceRejectionError());
+      }else{
+        emit(AcceptanceRejectionAccepted());
+      }
+    });
+  }
 
 }

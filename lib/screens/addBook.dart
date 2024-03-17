@@ -3,10 +3,17 @@ import 'package:ebook/helpers/fire_storage_helper.dart';
 import 'package:ebook/helpers/firestore_helper.dart';
 import 'package:ebook/models/Book.dart';
 import 'package:ebook/models/User.dart';
+import 'package:ebook/view_models/add_book_page/book_text_cubit.dart';
+import 'package:ebook/view_models/add_book_page/categories_cubit.dart';
+import 'package:ebook/view_models/add_book_page/cover_text_cubit.dart';
+import 'package:ebook/view_models/add_book_page/voice_text_cubit.dart';
+import 'package:ebook/view_models/home_page/voice_text_button_cubit.dart';
 import 'package:ebook/widgets/custom_text_form_field_disabled.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../helpers/toastHelper.dart';
+import '../view_models/loading_cubit.dart';
 import '../widgets/custom_text_form_field.dart';
 
 class AddBook extends StatefulWidget {
@@ -56,8 +63,19 @@ class _AddBookState extends State<AddBook> {
   ];
 
   @override
+  void didChangeDependencies() {
+    if(widget.book!.name != ""){
+      BlocProvider.of<CategoriesCubit>(context).setUpdateList(categories);
+      BlocProvider.of<BookTextCubit>(context).setUpdate("Add another book pdf or leave it");
+      BlocProvider.of<CoverTextCubit>(context).setUpdate("Add another cover or leave it");
+      BlocProvider.of<VoiceTextCubit>(context).setUpdate("Add another voice or leave it");
+    }
+    super.didChangeDependencies();
+  }
+
+  @override
   void initState() {
-    if(widget.book != null){
+    if(widget.book!.name != ""){
       nameController.text = widget.book!.name.toString();
       authorController.text = widget.book!.authorName.toString();
       nameEnabled = false;
@@ -88,10 +106,12 @@ class _AddBookState extends State<AddBook> {
 
     if (result != null) {
       book = result.files.first.bytes;
-      setState(() {
-        bookName = result.files.first.name;
-      });
+      changeBookName(result.files.first.name);
     }
+  }
+
+  changeBookName(String val){
+    BlocProvider.of<BookTextCubit>(context).setAdded(val);
   }
 
   pickCoverPage() async {
@@ -104,10 +124,12 @@ class _AddBookState extends State<AddBook> {
 
     if (result != null) {
       coverPage = result.files.first.bytes;
-      setState(() {
-        coverName = result.files.first.name;
-      });
+      changeCoverName(result.files.first.name);
     }
+  }
+
+  changeCoverName(String val){
+    BlocProvider.of<CoverTextCubit>(context).setAdded(val);
   }
 
   pickVoice() async {
@@ -120,10 +142,12 @@ class _AddBookState extends State<AddBook> {
 
     if (result != null) {
       voice = result.files.first.bytes;
-      setState(() {
-        voiceName = result.files.first.name;
-      });
+      changeVoiceName(result.files.first.name);
     }
+  }
+
+  changeVoiceName(String val){
+    BlocProvider.of<VoiceTextCubit>(context).setAdded(val);
   }
 
   @override
@@ -198,7 +222,23 @@ class _AddBookState extends State<AddBook> {
                               )
                             ),
                             const SizedBox(width: 10,),
-                            Text(bookName),
+                            BlocBuilder<BookTextCubit,BookTextState>(
+                              builder: (BuildContext context, state) {
+                                if(state is BookTextInitial){
+                                  bookName = (state).text;
+                                }
+
+                                if(state is BookTextAdded){
+                                  bookName = (state).text;
+                                }
+
+                                if(state is BookTextUpdate){
+                                  bookName = (state).text;
+                                }
+
+                                return Text(bookName);
+                              },
+                            )
                           ],
                         ),
                       ),
@@ -234,7 +274,23 @@ class _AddBookState extends State<AddBook> {
                                 )
                             ),
                             const SizedBox(width: 10,),
-                            Text(coverName),
+                            BlocBuilder<CoverTextCubit,CoverTextState>(
+                              builder: (BuildContext context, state) {
+                                if(state is CoverTextInitial){
+                                  coverName = (state).text;
+                                }
+
+                                if(state is CoverTextAdded){
+                                  coverName = (state).text;
+                                }
+
+                                if(state is CoverTextUpdate){
+                                  coverName = (state).text;
+                                }
+
+                                return Text(coverName);
+                              },
+                            )
                           ],
                         ),
                       ),
@@ -270,7 +326,23 @@ class _AddBookState extends State<AddBook> {
                                 )
                             ),
                             const SizedBox(width: 10,),
-                            Text(voiceName),
+                            BlocBuilder<VoiceTextCubit,VoiceTextState>(
+                              builder: (BuildContext context, state) {
+                                if(state is VoiceTextInitial){
+                                  voiceName = (state).text;
+                                }
+
+                                if(state is VoiceTextUpdate){
+                                  voiceName = (state).text;
+                                }
+
+                                if(state is VoiceTextAdded){
+                                  voiceName = (state).text;
+                                }
+
+                                return Text(voiceName);
+                              },
+                            )
                           ],
                         ),
                       ),
@@ -288,71 +360,94 @@ class _AddBookState extends State<AddBook> {
                         ),
                         child: Row(
                           children: [
-                            InkWell(
-                              onTap: (){
-                                showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        backgroundColor: Colors.transparent,
-                                        alignment: Alignment.bottomCenter,
-                                        content: Container(
-                                          width: MediaQuery.of(context).size.width,
-                                          height: MediaQuery.of(context).size.height/2,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.vertical(top: Radius.circular(20))
+                            BlocProvider(
+                              create: (BuildContext context) => CategoriesCubit(),
+                              child: InkWell(
+                                  onTap: (){
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext dialogContext) {
+                                        return AlertDialog(
+                                          backgroundColor: Colors.transparent,
+                                          alignment: Alignment.bottomCenter,
+                                          content: Container(
+                                            width: MediaQuery.of(context).size.width,
+                                            height: MediaQuery.of(context).size.height/2,
+                                            decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.vertical(top: Radius.circular(20))
+                                            ),
+                                            child: ListView(
+                                              children: List.generate(bookCategories.length, (index){
+                                                return ListTile(
+                                                  title: Text(bookCategories[index].toString()),
+                                                  onTap: (){
+                                                    BlocProvider.of<CategoriesCubit>(context).addCat(bookCategories[index],categories);
+                                                    Navigator.pop(context);
+                                                  },
+                                                );
+                                              }),
+                                            ),
                                           ),
-                                          child: ListView(
-                                            children: List.generate(bookCategories.length, (index){
-                                              return ListTile(
-                                                title: Text(bookCategories[index].toString()),
-                                                onTap: (){
-                                                  categories.add(bookCategories[index]);
-                                                  Navigator.pop(context);
-                                                  setState(() {});
-                                                },
-                                              );
-                                            }),
+                                        );
+                                      },
+                                    );
+                                  },
+                                  child: const Icon(Icons.add_circle_outline)
+                              ),
+                            ),
+
+                            const SizedBox(width: 20,),
+
+                            BlocBuilder<CategoriesCubit,CategoriesState>(
+                              builder: (BuildContext context, state) {
+                                if(state is CategoriesInitial){
+                                  if(widget.book!.name == ""){
+                                    categories = [];
+                                  }
+                                }
+
+                                if(state is CategoriesAdded){
+                                  categories = (state).categories;
+                                }
+
+                                if(state is CategoriesRemoved){
+                                  categories = (state).categories;
+                                }
+
+                                return categories.isEmpty? const Text("Add Categories") :Row(
+                                  children: List.generate(categories.length, (index){
+                                    return Container(
+                                      margin: const EdgeInsets.only(right: 5),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(15),
+                                        color: Colors.red,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            categories[index],
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
+                                          InkWell(
+                                            onTap: (){
+                                              BlocProvider.of<CategoriesCubit>(context).removeCat(categories[index],categories);
+                                            },
+                                            child: const Icon(Icons.clear,color: Colors.white,),
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  }),
                                 );
                               },
-                                child: const Icon(Icons.add_circle_outline)
-                            ),
-                            const SizedBox(width: 20,),
-                            categories.isEmpty? const Text("Add Categories") :Row(
-                              children: List.generate(categories.length, (index){
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 5),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(15),
-                                    color: Colors.red,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        categories[index],
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20
-                                        ),
-                                      ),
-                                      InkWell(
-                                        onTap: (){
-                                          categories.remove(categories[index]);
-                                          setState(() {});
-                                        },
-                                        child: const Icon(Icons.clear,color: Colors.white,),
-                                      )
-                                    ],
-                                  ),
-                                );
-                              }),
                             )
+
+
                           ],
                         ),
                     ),
@@ -364,11 +459,12 @@ class _AddBookState extends State<AddBook> {
                               padding: MaterialStateProperty.all(const EdgeInsets.symmetric(vertical: 15,horizontal: 20))
                           ),
                           onPressed: () async {
-                            setState(() {
-                              isLoading = true;
-                            });
+                            BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
 
-                            if(widget.book == null){
+                            if(widget.book!.name == ""){
+
+                              //add
+
                               String name = nameController.text.toString();
                               String author = authorController.text.toString();
 
@@ -426,10 +522,11 @@ class _AddBookState extends State<AddBook> {
                                 });
                               }
 
-                              setState(() {
-                                isLoading = false;
-                              });
+                              BlocProvider.of<LoadingCubit>(context).setIsLoading(false);
                             }else{
+
+                              //Update
+
                               String name = nameController.text.toString();
                               String author = authorController.text.toString();
                               FireStorageHelper fireStorage = FireStorageHelper();
@@ -507,9 +604,7 @@ class _AddBookState extends State<AddBook> {
                                 });
                               }
 
-                              setState(() {
-                                isLoading = false;
-                              });
+                              BlocProvider.of<LoadingCubit>(context).setIsLoading(false);
                             }
                           },
                           child: Text(buttonText,style: const TextStyle(fontSize: 25,color: Colors.white),)
@@ -520,13 +615,22 @@ class _AddBookState extends State<AddBook> {
                 ),
               ),
             ),
-            isLoading ? const Positioned(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.red,
-                ),
-              ),
-            ):const SizedBox.shrink(),
+            BlocBuilder<LoadingCubit,LoadingState>(
+              builder: (BuildContext context, LoadingState state) {
+                if(state is Loading){
+                  isLoading = (state).isLoading;
+                }else if(state is LoadingStopped){
+                  isLoading = (state).isLoading;
+                }
+                return isLoading ? const Positioned(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.red,
+                    ),
+                  ),
+                ):const SizedBox.shrink();
+              },
+            ),
             Positioned(
               top: 40,
               left: 40,

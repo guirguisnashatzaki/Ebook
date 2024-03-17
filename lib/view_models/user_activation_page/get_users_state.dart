@@ -10,15 +10,3 @@ class GetUsersLoaded extends GetUsersState{
 
   GetUsersLoaded(this.users);
 }
-
-class GetUsersLoading extends GetUsersState{
-  final bool isLoading;
-
-  GetUsersLoading(this.isLoading);
-}
-
-class GetUsersNotLoading extends GetUsersState{
-  final bool isLoading;
-
-  GetUsersNotLoading(this.isLoading);
-}

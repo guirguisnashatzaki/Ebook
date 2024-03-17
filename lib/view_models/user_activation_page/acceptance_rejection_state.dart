@@ -9,4 +9,4 @@ class AcceptanceRejectionAccepted extends AcceptanceRejectionState {}
 
 class AcceptanceRejectionRejected extends AcceptanceRejectionState {}
 
-class AcceptanceRejectionPending extends AcceptanceRejectionState {}
+class AcceptanceRejectionError extends AcceptanceRejectionState {}

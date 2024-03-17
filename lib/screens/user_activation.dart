@@ -27,6 +27,7 @@ class _UserActivationState extends State<UserActivation> {
 
   bool isLoading = false;
   late List<User> users;
+  bool flag = true;
 
   @override
   void initState() {
@@ -90,76 +91,107 @@ class _UserActivationState extends State<UserActivation> {
                                     fontWeight: FontWeight.bold
                                 ),
                               ),
-                              Row(
-                                children: [
-                                  Text(users[index].state.toString(),
-                                    style: TextStyle(
-                                        fontSize: 25,
-                                        color: colors[users[index].state],
-                                        fontWeight: FontWeight.bold
-                                    ),
-                                  ),
-                                  users[index].state == pending ? const SizedBox(width: 50,):const SizedBox.shrink(),
-                                  users[index].state == pending ? Container(
-                                    decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.green
-                                    ),
-                                    child: IconButton(onPressed: (){
-                                      BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
-                                      User user = User(
-                                          email: users[index].email,
-                                          role: users[index].role,
-                                          password: users[index].password,
-                                          username: users[index].username,
-                                          state: accepted
-                                      );
 
-                                      FirestoreHelper firestoreHelper = FirestoreHelper();
-                                      firestoreHelper.updateUser(user).then((value){
-                                        if(value.isError){
-                                          ToastHelper.showMyToast("Activation Failed");
-                                        }else{
-                                          ToastHelper.showMyToast("Activation Succeed");
-                                        }
-                                        BlocProvider.of<LoadingCubit>(context).setIsLoading(false);
-                                        users = BlocProvider.of<GetUsersCubit>(context).getUsers();
-                                      });
+                              BlocBuilder<AcceptanceRejectionCubit,AcceptanceRejectionState>(
+                                builder: (BuildContext context, state) {
+                                  if(state is AcceptanceRejectionAccepted && flag){
+                                    ToastHelper.showMyToast("Activation succeeded");
+                                    flag = false;
+                                  }
 
-                                    }, icon: const Icon(Icons.check,color: Colors.white,)),
-                                  ): const SizedBox.shrink(),
-                                  users[index].state == pending ? const SizedBox(width: 10,): const SizedBox.shrink(),
-                                  users[index].state == pending ? Container(
-                                    decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.red
-                                    ),
-                                    child: IconButton(onPressed: (){
+                                  if(state is AcceptanceRejectionRejected && flag){
+                                    ToastHelper.showMyToast("Rejection succeeded");
+                                    flag = false;
+                                  }
 
-                                      BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
+                                  if(state is AcceptanceRejectionError && flag){
+                                    ToastHelper.showMyToast("Error happened");
+                                    flag = false;
+                                  }
+                                  
+                                  return Row(
+                                    children: [
+                                      Text(users[index].state.toString(),
+                                        style: TextStyle(
+                                            fontSize: 25,
+                                            color: colors[users[index].state],
+                                            fontWeight: FontWeight.bold
+                                        ),
+                                      ),
+                                      users[index].state == pending ? const SizedBox(width: 50,):const SizedBox.shrink(),
+                                      users[index].state == pending ? Container(
+                                        decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.green
+                                        ),
+                                        child: IconButton(onPressed: (){
+                                          flag = true;
+                                          BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
+                                          User user = User(
+                                              email: users[index].email,
+                                              role: users[index].role,
+                                              password: users[index].password,
+                                              username: users[index].username,
+                                              state: accepted
+                                          );
 
-                                      User user = User(
-                                          email: users[index].email,
-                                          role: users[index].role,
-                                          password: users[index].password,
-                                          username: users[index].username,
-                                          state: rejected
-                                      );
+                                          BlocProvider.of<AcceptanceRejectionCubit>(context).accept(user);
 
-                                      FirestoreHelper firestoreHelper = FirestoreHelper();
-                                      firestoreHelper.updateUser(user).then((value){
-                                        if(value.isError){
-                                          ToastHelper.showMyToast("Rejection Failed");
-                                        }else{
-                                          ToastHelper.showMyToast("Rejection Succeed");
-                                        }
-                                        BlocProvider.of<LoadingCubit>(context).setIsLoading(false);
-                                        users = BlocProvider.of<GetUsersCubit>(context).getUsers();
-                                      });
-                                    }, icon: const Icon(Icons.clear,color: Colors.white,)),
-                                  ): const SizedBox.shrink(),
-                                ],
+                                          Future.delayed(
+                                            const Duration(seconds: 1),
+                                            () => BlocProvider.of<LoadingCubit>(context).setIsLoading(false),
+                                          );
+
+                                          Future.delayed(
+                                            const Duration(seconds: 1),
+                                                () {
+                                                  users = BlocProvider.of<GetUsersCubit>(context).getUsers();
+                                                },
+                                          );
+
+                                        }, icon: const Icon(Icons.check,color: Colors.white,)),
+                                      ): const SizedBox.shrink(),
+                                      users[index].state == pending ? const SizedBox(width: 10,): const SizedBox.shrink(),
+                                      users[index].state == pending ? Container(
+                                        decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.red
+                                        ),
+                                        child: IconButton(onPressed: (){
+                                          flag = true;
+                                          BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
+
+                                          User user = User(
+                                              email: users[index].email,
+                                              role: users[index].role,
+                                              password: users[index].password,
+                                              username: users[index].username,
+                                              state: rejected
+                                          );
+
+                                          BlocProvider.of<AcceptanceRejectionCubit>(context).reject(user);
+
+
+                                          Future.delayed(
+                                            const Duration(seconds: 1),
+                                                () => BlocProvider.of<LoadingCubit>(context).setIsLoading(false),
+                                          );
+
+                                          Future.delayed(
+                                            const Duration(seconds: 1),
+                                                () {
+                                              users = BlocProvider.of<GetUsersCubit>(context).getUsers();
+                                            },
+                                          );
+                                          
+                                        }, icon: const Icon(Icons.clear,color: Colors.white,)),
+                                      ): const SizedBox.shrink(),
+                                    ],
+                                  );
+                                },
                               )
+
+                              
 
                             ],
                           ),

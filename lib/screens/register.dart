@@ -1,13 +1,16 @@
 import 'package:ebook/helpers/firestore_helper.dart';
 import 'package:ebook/models/User.dart';
+import 'package:ebook/view_models/register_page/register_cubit.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../constants.dart';
 import '../helpers/auth_helper.dart';
 import '../helpers/sharred_prefs_helper.dart';
 import '../helpers/toastHelper.dart';
 import '../objects/NetworkState.dart';
+import '../view_models/loading_cubit.dart';
 import '../widgets/custom_text_form_field.dart';
 
 class Register extends StatefulWidget {
@@ -87,54 +90,19 @@ class _RegisterState extends State<Register> {
                           ),
                           onPressed: () async {
 
-                            setState(() {
-                              isLoading = true;
-                            });
+                            BlocProvider.of<LoadingCubit>(context).setIsLoading(true);
 
                             String email = emailController.text.toString();
                             String pass = passController.text.toString();
                             String username = usernameController.text.toString();
                             String confirmPass = confirmPassController.text.toString();
 
-                            if(email.isEmpty || pass.isEmpty || username.isEmpty || confirmPass.isEmpty){
-                              ToastHelper.showMyToast("One of the fields are empty");
-                            } else if(pass != confirmPass){
-                              ToastHelper.showMyToast("Passwords are not the same");
-                            } else{
-                              AuthHelper authHelper = AuthHelper();
-                              NetworkState registerState = await authHelper.signUp(email, pass);
+                            BlocProvider.of<RegisterCubit>(context).validate(email, pass, username, confirmPass);
 
-                              ToastHelper.showMyToast(registerState.message);
-
-                              if(!registerState.isError){
-                                FirestoreHelper firestoreHelper = FirestoreHelper();
-
-                                User user = User(
-                                  username: username,
-                                  state: pending,
-                                  password: pass,
-                                  role: normalUser,
-                                  email: email
-                                );
-
-                                firestoreHelper.addUser(user).then((state) async {
-
-                                  ToastHelper.showMyToast(state.message);
-
-                                  if(!state.isError){
-                                    SharredPrefsHelper prefs = SharredPrefsHelper();
-                                    await prefs.login(user.email.toString()).then((value){
-                                      Navigator.popAndPushNamed(context, home,arguments: user);
-                                    });
-                                  }
-                                });
-                              }
-
-                            }
-
-                            setState(() {
-                              isLoading = false;
-                            });
+                            Future.delayed(
+                              const Duration(seconds: 1),
+                                  () => BlocProvider.of<LoadingCubit>(context).setIsLoading(false),
+                            );
 
                           },
                           child: const Text("Register",style: TextStyle(fontSize: 25,color: Colors.white),)
@@ -169,13 +137,48 @@ class _RegisterState extends State<Register> {
                 ),
               ),
             ),
-            isLoading ? const Positioned(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.red,
-                ),
-              ),
-            ):const SizedBox.shrink()
+            BlocBuilder<LoadingCubit,LoadingState>(
+              builder: (BuildContext context, LoadingState state) {
+                if(state is Loading){
+                  isLoading = (state).isLoading;
+                }else if(state is LoadingStopped){
+                  isLoading = (state).isLoading;
+                }
+                return isLoading ? const Positioned(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.red,
+                    ),
+                  ),
+                ):const SizedBox.shrink();
+              },
+            ),
+
+            BlocBuilder<RegisterCubit,RegisterState>(
+              builder: (BuildContext context, state) {
+                if(state is RegisterValidationError){
+                  ToastHelper.showMyToast("One of the fields are empty");
+                }
+
+                if(state is RegisterPasswordError){
+                  ToastHelper.showMyToast("Passwords are not the same");
+                }
+
+                if(state is RegisterValidated){
+                  ToastHelper.showMyToast("User got");
+                  Future.delayed(
+                    const Duration(seconds: 1),
+                        () => Navigator.popAndPushNamed(context, home,arguments: (state).state.data as User),
+                  );
+                }
+
+                if(state is RegisterError){
+                  ToastHelper.showMyToast("Registration Error");
+                }
+
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         ),
       ),
